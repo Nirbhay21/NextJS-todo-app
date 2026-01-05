@@ -68,7 +68,7 @@ Instead of just wrapping a library, I implemented a custom auth flow to understa
 
 ---
 
-## � API Routes I Built
+## 🔌 API Routes I Built
 
 I created a full REST API for this project. Here are the endpoints I implemented:
 
@@ -85,44 +85,108 @@ I created a full REST API for this project. Here are the endpoints I implemented
 
 ---
 
-## �📂 How I Organized My Code
+## 📂 Complete Project Structure
 
-I tried to keep the folder structure clean and modular. Here is a quick overview:
+Here is the exact structure of my project files:
 
 ```text
 src/
-├── app/                 # The new Next.js 15 App Router
-│   ├── api/             # My backend routes (where the magic happens)
-│   │   ├── auth/        # Login/Signup/Logout/Me endpoints
-│   │   └── todos/       # Task management endpoints ([id] for dynamic routes)
-│   ├── login/           # Login page
-│   ├── signup/          # Signup page
-│   ├── layout.tsx       # Main layout (Providers, Fonts, Metadata)
-│   └── page.tsx         # The main Dashboard (Protected Route)
-├── components/          # Reusable UI parts
-│   ├── Navbar.tsx       # The top navigation bar
-│   ├── TodoItem.tsx     # Component for a single task
-│   └── ...
-├── features/            # Redux Slices (connecting FE to BE)
-├── lib/                 # Helper functions
-│   ├── connectDB.ts     # Database connection logic
-│   └── auth.ts          # Session helper functions
-├── models/              # Mongoose Schemas (User, Todo, Session)
-├── providers/           # wrappers for Redux and Theme
-└── types/               # TypeScript definitions
+├── app/
+│   ├── api/                     # Backend API Routes
+│   │   ├── auth/
+│   │   │   ├── login/
+│   │   │   │   └── route.ts     # POST: Login Logic
+│   │   │   ├── logout/
+│   │   │   │   └── route.ts     # POST: Logout Logic
+│   │   │   ├── me/
+│   │   │   │   └── route.ts     # GET: Validate Session
+│   │   │   └── signup/
+│   │   │       └── route.ts     # POST: Register User
+│   │   └── todos/
+│   │       ├── [id]/            # Dynamic Route for specific todo
+│   │       │   └── route.ts     # PUT & DELETE Handlers
+│   │       └── route.ts         # GET & POST Handlers
+│   ├── login/
+│   │   └── page.tsx             # Login Page UI
+│   ├── signup/
+│   │   └── page.tsx             # Signup Page UI
+│   ├── globals.css              # Global styles & Tailwind
+│   ├── layout.tsx               # Root layout (Metadata, Fonts, Providers)
+│   └── page.tsx                 # Main Dashboard Page
+├── components/
+│   ├── Navbar.tsx               # Top navigation bar
+│   ├── ThemeToggle.tsx          # Dark/Light mode switch
+│   ├── TodoApp.tsx              # Main container for Todo logic
+│   ├── TodoInput.tsx            # Input form component
+│   └── TodoItem.tsx             # Individual todo item component
+├── features/
+│   ├── auth/
+│   │   └── authApi.ts           # Redux RTK Query for Auth
+│   └── todos/
+│       └── todoApi.ts           # Redux RTK Query for Todos
+├── hooks/
+│   └── useHydrated.ts           # Custom hook for Hydration check
+├── lib/
+│   ├── auth.ts                  # Session signing & verification helpers
+│   ├── connectDB.ts             # MongoDB Cache/Singleton Connection
+│   └── utils.ts                 # Tailwind class merger (cn)
+├── models/
+│   ├── sessionModel.ts          # Mongoose Schema for Sessions
+│   ├── todoModel.ts             # Mongoose Schema for Todos
+│   └── userModel.ts             # Mongoose Schema for Users
+├── providers/
+│   ├── ReduxProvider.tsx        # Redux Context Wrapper
+│   └── ThemeProvider.tsx        # Next-Themes Wrapper
+├── store/
+│   ├── api/
+│   │   └── baseApi.ts           # Base RTK Query setup
+│   └── store.ts                 # Global Store configuration
+├── types/
+│   ├── global.d.ts              # Global type augmentations
+│   └── todo.ts                  # Shared TypeScript interfaces
+├── .env.local                   # Environment secrets
+├── middleware.ts                # Route protection middleware
+├── next.config.ts               # Next.js config
+├── package.json                 # Dependencies
+├── tailwind.config.ts           # Tailwind config
+└── tsconfig.json                # TypeScript config
 ```
 
 ---
 
 ## 🎓 What I Learned
 
-This project helped me solidify a lot of concepts from the course:
+This project helped me solidify a lot of concepts from the course. Here is a comprehensive list of what I implemented:
 
-1.  **Routing paradigms**: I finally understand the difference between `page.tsx`, `layout.tsx` and how nested routes work. I also learned about **Dynamic Routing** (like `[id]`) to handle specific items.
-2.  **Server Components vs Client Components**: This was tricky at first! I learned that I should use **Client Components** (`"use client"`) only when I need interactivity (like `useState`, `onClick`, hooks), and keep everything else as **Server Components** for better performance and SEO.
-3.  **API Routes**: I learned how to handle `POST`, `GET`, `PUT`, and `DELETE` requests directly in Next.js using `Route Handlers`. I learned how to read the `Request` body and send back a `Response`.
-4.  **Database Connection**: Connecting Next.js to MongoDB was cool. I learned how to prevent opening too many connections (which can crash the app) by using a caching/singleton pattern in `connectDB.ts`.
-5.  **Data Fetching**: Using **RTK Query** was a game changer. It automatically caches the data so the app feels super fast and I don't have to manually manage `isLoading` states everywhere.
+### 1. Next.js Core & Routing
+*   **App Router**: I specifically didn't use the old `pages` directory. I learned how to use the special files like `layout.tsx` for wrapping my app and `page.tsx` for the UI.
+*   **Dynamic Routing**: I utilized square brackets `[id]` to handle individual todo items (`/api/todos/[id]`), which allows me to delete or update specific tasks.
+*   **Route Groups**: I learned how to organize my files logically without affecting the URL structure (though simpler folder based routing was enough here!).
+*   **Metadata API**: Instead of the old `Head` component, I used the Metadata API in `layout.tsx` to set the page title and description for SEO.
+
+### 2. Rendering Strategies
+*   **Server Components (RSC)**: By default, all my pages are Server Components. This keeps the initial bundle size small.
+*   **Client Components**: I learned exactly when to use `"use client"`. I had to use it for my `Navbar` (because it needs to know if I'm logged in) and `TodoInput` (because it needs to handle form state).
+*   **Hydration**: I encountered hydration errors initially because of the Theme Toggle (Local Storage vs Server HTML), and solved it using a `useHydrated` hook to wait for the client to be ready.
+
+### 3. Backend & Data Fetching
+*   **Route Handlers**: I built a complete REST API effectively replacing Express.js. I handle `GET`, `POST`, `PUT`, and `DELETE` requests using the standard Web Request/Response API.
+*   **Database Connections**: I learned that serverless functions can open too many DB connections. I implemented a **Singleton Pattern** in `lib/connectDB.ts` to reuse the existing connection effectively.
+*   **Mongoose Models**: I used strict schemas for my data. For example, my `Todo` model links back to a `User` using `ref: "User"`, basically creating a relational link in a NoSQL database.
+
+### 4. Advanced Authentication
+*   **Manual Auth Flow**: Instead of using Clerk or NextAuth immediately, I built this manually to understand the core concepts.
+*   **Password Hashing**: I used `bcrypt` to salt and hash passwords so they are never stored as plain text.
+*   **Sessions**: I created a `Session` collection in MongoDB. When a user logs in, I create a session and store the ID in a signed, HTTP-Only cookie.
+*   **Middleware Protection**: I wrote a `middleware.ts` file that intercepts requests. If you try to visit `/` without that cookie, it kicks you back to `/login`.
+
+### 5. State Management & API Caching
+*   **Redux Toolkit**: I set up a global store to manage the application state.
+*   **RTK Query**: This was the biggest learning. I didn't need `useEffect` to fetch data. RTK Query handles the fetching, caching, and invalidating of tags (e.g., when I add a todo, it automatically re-fetches the list).
+
+### 6. Styling with Tailwind
+*   **Dark Mode**: I implemented dark mode support using `next-themes` and Tailwind's `dark:` modifier.
+*   **Utility First**: I avoided writing custom CSS files (except for `globals.css`) and used utility classes for everything, which made development very fast.
 
 ---
 
