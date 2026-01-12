@@ -4,13 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Mail, Lock, ArrowRight, Chrome, Eye, EyeOff } from "lucide-react";
-import { useLoginMutation } from "@/features/auth/authApi";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 // Validation Schema
 const loginSchema = z.object({
@@ -46,7 +46,9 @@ function isApiError(error: unknown): error is ApiErrorResponse {
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const [login, { isLoading }] = useLoginMutation();
+
+  const [isProviderLoading, setIsProviderLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
@@ -61,9 +63,47 @@ export default function LoginPage() {
     },
   });
 
+  const handleGoogleSignIn = async () => {
+    await authClient.signIn.social(
+      {
+        provider: "google",
+        callbackURL: "/",
+        newUserCallbackURL: "/",
+      },
+      {
+        onRequest: () => {
+          setIsProviderLoading(true);
+        },
+        onError: () => {
+          setIsProviderLoading(false);
+          toast.error("Failed to redirect to Google sign-in");
+        },
+      }
+    );
+  };
+
   const onSubmit = async (data: LoginValues) => {
     try {
-      await login(data).unwrap();
+      await authClient.signIn.email(
+        {
+          email: data.email,
+          password: data.password,
+
+          callbackURL: "/",
+        },
+        {
+          onRequest: () => {
+            setIsLoading(true);
+          },
+          onSuccess: () => {
+            setIsLoading(false);
+          },
+          onError: () => {
+            setIsLoading(false);
+            toast.error("Failed to login. Please try again.");
+          },
+        }
+      );
       toast.success("Welcome back! Redirecting...");
       setTimeout(() => {
         router.push("/");
@@ -76,8 +116,14 @@ export default function LoginPage() {
 
         if (serverError.code === "INVALID_CREDENTIALS") {
           setError("email", { type: "manual", message: "" });
-          setError("password", { type: "manual", message: "Invalid email or password" });
-        } else if (serverError.code === "VALIDATION_ERROR" && serverError.fields) {
+          setError("password", {
+            type: "manual",
+            message: "Invalid email or password",
+          });
+        } else if (
+          serverError.code === "VALIDATION_ERROR" &&
+          serverError.fields
+        ) {
           Object.keys(serverError.fields).forEach((field) => {
             setError(field as keyof LoginValues, {
               type: "server",
@@ -127,6 +173,42 @@ export default function LoginPage() {
           {/* Subtle light effect */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 blur-3xl rounded-full" />
 
+          <motion.button
+            whileHover={{
+              scale: !isProviderLoading ? 1.02 : 1,
+              y: !isProviderLoading ? -2 : 0,
+            }}
+            whileTap={{ scale: !isProviderLoading ? 0.98 : 1 }}
+            disabled={isProviderLoading}
+            onClick={handleGoogleSignIn}
+            className="flex items-center justify-center gap-3 w-full py-4 px-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-850 hover:border-indigo-300 dark:hover:border-indigo-700/50 transition-all duration-300 cursor-pointer shadow-sm group disabled:opacity-60"
+          >
+            {isProviderLoading ? (
+              // Loader (spinner)
+              <div className="w-5 h-5 border-2 border-gray-700 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Chrome
+                size={20}
+                className="text-gray-700 dark:text-gray-300 group-hover:text-indigo-500 transition-colors dark:group-hover:text-black"
+              />
+            )}
+
+            <span className="text-sm font-bold text-gray-700 dark:text-gray-200 dark:group-hover:text-black">
+              {isProviderLoading ? "Connecting..." : "Continue with Google"}
+            </span>
+          </motion.button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-100 dark:border-gray-800/50"></div>
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase tracking-[0.3em] font-black text-gray-400 dark:text-gray-500">
+              <span className="bg-white dark:bg-[#050505] px-4">
+                Or continue with
+              </span>
+            </div>
+          </div>
+
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             {/* Email */}
             <div className="space-y-2">
@@ -134,10 +216,14 @@ export default function LoginPage() {
                 Email Address
               </label>
               <div className="relative group">
-                <div className={cn(
-                  "absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200",
-                  errors.email ? "text-red-500" : "text-gray-400 group-focus-within:text-indigo-500"
-                )}>
+                <div
+                  className={cn(
+                    "absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200",
+                    errors.email
+                      ? "text-red-500"
+                      : "text-gray-400 group-focus-within:text-indigo-500"
+                  )}
+                >
                   <Mail size={18} />
                 </div>
                 <input
@@ -173,10 +259,14 @@ export default function LoginPage() {
                 </Link>
               </div>
               <div className="relative group">
-                <div className={cn(
-                  "absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200",
-                  errors.password ? "text-red-500" : "text-gray-400 group-focus-within:text-indigo-500"
-                )}>
+                <div
+                  className={cn(
+                    "absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200",
+                    errors.password
+                      ? "text-red-500"
+                      : "text-gray-400 group-focus-within:text-indigo-500"
+                  )}
+                >
                   <Lock size={18} />
                 </div>
                 <input
@@ -228,28 +318,6 @@ export default function LoginPage() {
               </motion.button>
             </div>
           </form>
-
-          <div className="mt-10 relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-100 dark:border-gray-800/50"></div>
-            </div>
-            <div className="relative flex justify-center text-[10px] uppercase tracking-[0.3em] font-black text-gray-400 dark:text-gray-500">
-              <span className="bg-white dark:bg-[#050505] px-4">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <motion.button
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-850 hover:border-indigo-300 dark:hover:border-indigo-700/50 transition-all duration-300 cursor-pointer shadow-sm group"
-            >
-              <Chrome size={20} className="text-indigo-500" />
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Google Account</span>
-            </motion.button>
-          </div>
         </div>
 
         <motion.div

@@ -1,7 +1,7 @@
 import { getLoggedInUser } from "@/lib/auth";
 import { connectDB } from "@/lib/connectDB";
 import Todo from "@/models/todoModel";
-import { UserDocument } from "@/models/userModel";
+import { User } from "better-auth";
 
 export async function GET(
   request: Request,
@@ -11,7 +11,7 @@ export async function GET(
 
   const { id } = await params;
 
-  let user: UserDocument;
+  let user: User;
 
   try {
     user = await getLoggedInUser();
@@ -26,7 +26,7 @@ export async function GET(
   }
 
   try {
-    const todo = await Todo.findById({ _id: id, userId: user._id });
+    const todo = await Todo.findById({ _id: id, userId: user.id });
     if (!todo) {
       return new Response(JSON.stringify({ message: "Todo not found" }), {
         headers: { "Content-Type": "application/json" },
@@ -58,7 +58,7 @@ export async function PATCH(
     const { id } = await params;
     const { text, completed } = await request.json();
 
-    let user: UserDocument;
+    let user: User;
 
     try {
       user = await getLoggedInUser();
@@ -79,7 +79,7 @@ export async function PATCH(
     ) {
       try {
         await Todo.findOneAndUpdate(
-          { _id: id, userId: user._id },
+          { _id: id, userId: user.id },
           { text: text.trim() }
         );
         return new Response(
@@ -163,7 +163,7 @@ export async function DELETE(
   await connectDB();
   const { id } = await params;
 
-  let user: UserDocument;
+  let user: User;
 
   try {
     user = await getLoggedInUser();
@@ -178,7 +178,7 @@ export async function DELETE(
   }
 
   try {
-    await Todo.deleteOne({ _id: id, userId: user._id });
+    await Todo.deleteOne({ _id: id, userId: user.id });
     return new Response(
       JSON.stringify({ message: "Todo deleted successfully" }),
       {

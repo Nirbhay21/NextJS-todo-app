@@ -13,13 +13,13 @@ import {
   EyeOff,
   Chrome,
 } from "lucide-react";
-import { useSignupMutation } from "@/features/auth/authApi";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { authClient } from "@/lib/auth-client";
 
 // Validation Schema
 const signupSchema = z
@@ -69,7 +69,8 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
-  const [signup, { isLoading }] = useSignupMutation();
+  const [isProviderLoading, setIsProviderLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
@@ -86,13 +87,48 @@ export default function SignupPage() {
     },
   });
 
+  const handleGoogleSignIn = async () => {
+    await authClient.signIn.social(
+      {
+        provider: "google",
+        callbackURL: "/",
+        newUserCallbackURL: "/",
+      },
+      {
+        onRequest: () => {
+          setIsProviderLoading(true);
+        },
+        onError: () => {
+          setIsProviderLoading(false);
+          toast.error("Failed to redirect to Google sign-in");
+        },
+      }
+    );
+  };
+
   const onSubmit = async (data: SignupValues) => {
     try {
-      await signup({
-        fullname: data.fullName,
-        email: data.email,
-        password: data.password,
-      }).unwrap();
+      await authClient.signUp.email(
+        {
+          name: data.fullName,
+          email: data.email,
+          password: data.password,
+
+          callbackURL: "/",
+        },
+        {
+          onRequest: () => {
+            setIsLoading(true);
+          },
+          onSuccess: () => {
+            setIsLoading(false);
+          },
+          onError: () => {
+            setIsLoading(false);
+            toast.error("Failed to create account");
+          },
+        }
+      );
 
       toast.success("Account created successfully! Redirecting...");
 
@@ -169,16 +205,27 @@ export default function SignupPage() {
           {/* Primary Social Signup */}
           <div className="flex flex-col gap-6 mb-10">
             <motion.button
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-850 hover:border-indigo-300 dark:hover:border-indigo-700/50 transition-all duration-300 cursor-pointer shadow-sm group"
+              whileHover={{
+                scale: !isProviderLoading ? 1.02 : 1,
+                y: !isProviderLoading ? -2 : 0,
+              }}
+              whileTap={{ scale: !isProviderLoading ? 0.98 : 1 }}
+              disabled={isProviderLoading}
+              onClick={handleGoogleSignIn}
+              className="flex items-center justify-center gap-3 w-full py-4 px-6 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-850 hover:border-indigo-300 dark:hover:border-indigo-700/50 transition-all duration-300 cursor-pointer shadow-sm group disabled:opacity-60"
             >
-              <Chrome
-                size={20}
-                className="text-gray-700 dark:text-gray-300 group-hover:text-indigo-500 transition-colors"
-              />
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
-                Continue with Google
+              {isProviderLoading ? (
+                // Loader (spinner)
+                <div className="w-5 h-5 border-2 border-gray-700 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Chrome
+                  size={20}
+                  className="text-gray-700 dark:text-gray-300 group-hover:text-indigo-500 transition-colors dark:group-hover:text-black"
+                />
+              )}
+
+              <span className="text-sm font-bold text-gray-700 dark:text-gray-200 dark:group-hover:text-black">
+                {isProviderLoading ? "Connecting..." : "Continue with Google"}
               </span>
             </motion.button>
 

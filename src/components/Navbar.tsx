@@ -10,14 +10,13 @@ import {
   UserPlus,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
-import { useGetMeQuery, useLogoutMutation } from "@/features/auth/authApi";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
+import { authClient } from "@/lib/auth-client";
 
 export default function Navbar() {
-  const { data: userData, isLoading: isUserLoading } = useGetMeQuery();
-  const [logout] = useLogoutMutation();
+  const { data: session, isPending: isUserLoading } = authClient.useSession();
   const router = useRouter();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -44,7 +43,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await logout().unwrap();
+      await authClient.signOut();
       setIsProfileOpen(false);
       toast.success("Logged out successfully");
       router.push("/login");
@@ -53,7 +52,7 @@ export default function Navbar() {
     }
   };
 
-  const user = userData?.user;
+  const user = session?.user;
 
   return (
     <nav className="fixed inset-x-0 top-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">
@@ -86,7 +85,7 @@ export default function Navbar() {
                 className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 active:scale-95 group"
               >
                 <span className="hidden sm:block text-sm font-bold text-gray-700 dark:text-gray-300 ml-1">
-                  {user.fullname.split(" ")[0]}
+                  {user.name.split(" ")[0]}
                 </span>
                 <div className="size-9 rounded-xl bg-linear-to-br from-indigo-500 to-violet-500 p-[2px] shadow-md shadow-indigo-500/20">
                   <div className="size-full bg-white dark:bg-gray-900 rounded-[10px] flex items-center justify-center overflow-hidden">
@@ -108,7 +107,7 @@ export default function Navbar() {
                         Signed in as
                       </p>
                       <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                        {user.fullname}
+                        {user.name}
                       </p>
                       <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate mt-0.5">
                         {user.email}

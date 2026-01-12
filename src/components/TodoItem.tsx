@@ -58,7 +58,7 @@ export default function TodoItem({ todo }: TodoItemProps) {
       className={cn(
         "group flex items-center justify-between p-3 sm:p-4 bg-white/50 dark:bg-gray-800/40 hover:bg-white dark:hover:bg-gray-800 rounded-2xl border border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/50 shadow-sm hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300",
         todo.completed &&
-        "opacity-75 bg-gray-50/50 dark:bg-gray-900/80 hover:bg-gray-50 dark:hover:bg-gray-900/30"
+          "opacity-75 bg-gray-50/50 dark:bg-gray-900/80 hover:bg-gray-50 dark:hover:bg-gray-900/30"
       )}
     >
       <div className="flex items-center flex-1 gap-3 sm:gap-5 overflow-hidden">
