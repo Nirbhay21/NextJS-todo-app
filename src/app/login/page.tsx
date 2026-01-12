@@ -97,17 +97,19 @@ export default function LoginPage() {
           },
           onSuccess: () => {
             setIsLoading(false);
+            toast.success("Welcome back! Redirecting...");
+            setTimeout(() => {
+              router.push("/");
+            }, 500);
           },
-          onError: () => {
+          onError: (error) => {
             setIsLoading(false);
-            toast.error("Failed to login. Please try again.");
+            toast.error(
+              error.error.message || "Login failed. Please try again."
+            );
           },
         }
       );
-      toast.success("Welcome back! Redirecting...");
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
     } catch (error: unknown) {
       if (isApiError(error)) {
         const serverError = error.data.error;
