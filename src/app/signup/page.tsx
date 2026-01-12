@@ -113,8 +113,6 @@ export default function SignupPage() {
           name: data.fullName,
           email: data.email,
           password: data.password,
-
-          callbackURL: "/",
         },
         {
           onRequest: () => {
@@ -122,19 +120,18 @@ export default function SignupPage() {
           },
           onSuccess: () => {
             setIsLoading(false);
+
+            toast.success("Account created successfully! Redirecting...");
+            setTimeout(() => {
+              router.push("/login");
+            }, 500);
           },
-          onError: () => {
+          onError: (error) => {
             setIsLoading(false);
-            toast.error("Failed to create account");
+            toast.error(error.error.message || "Failed to create account");
           },
         }
       );
-
-      toast.success("Account created successfully! Redirecting...");
-
-      setTimeout(() => {
-        router.push("/login");
-      }, 1500);
     } catch (error: unknown) {
       if (isApiError(error)) {
         const serverError = error.data.error;
