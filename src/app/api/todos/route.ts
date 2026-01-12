@@ -1,12 +1,12 @@
 import { getLoggedInUser } from "@/lib/auth";
 import { connectDB } from "@/lib/connectDB";
 import Todo from "@/models/todoModel";
-import { UserDocument } from "@/models/userModel";
+import { User } from "better-auth";
 
 export async function GET() {
   await connectDB();
 
-  let user: UserDocument;
+  let user: User;
 
   try {
     user = await getLoggedInUser();
@@ -21,7 +21,7 @@ export async function GET() {
   }
 
   try {
-    const todos = await Todo.find({ userId: user._id }).lean();
+    const todos = await Todo.find({ userId: user.id }).lean();
     return Response.json(todos);
   } catch (error) {
     console.error("Error fetching todos from DB:", error);
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { text } = body;
 
-  let user: UserDocument;
+  let user: User;
 
   try {
     user = await getLoggedInUser();
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const todo = await Todo.create({ text: text.trim(), userId: user._id });
+    const todo = await Todo.create({ text: text.trim(), userId: user.id });
     return new Response(JSON.stringify(todo), {
       headers: { "Content-Type": "application/json" },
       status: 201,

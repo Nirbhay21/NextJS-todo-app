@@ -6,14 +6,15 @@ import { AnimatePresence, motion } from "motion/react";
 import { Sparkles, ClipboardList, LogIn, UserPlus } from "lucide-react";
 import TodoItem from "./TodoItem";
 import { useGetTodosQuery } from "@/features/todos/todoApi";
-import { useGetMeQuery } from "@/features/auth/authApi";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
 
 export default function TodoApp() {
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
 
-  const { data: userData, isLoading: isUserLoading } = useGetMeQuery();
+  const { data: session, isPending: isUserLoading } = authClient.useSession();
+
   const {
     isSuccess,
     isLoading: isTodosLoading,
@@ -21,16 +22,15 @@ export default function TodoApp() {
     data: todos,
     refetch,
   } = useGetTodosQuery(undefined, {
-    skip: !userData?.user,
+    skip: !session?.user,
   });
 
   // Loading State
-  if (isUserLoading || (userData?.user && isTodosLoading)) {
+  if (isUserLoading || (session?.user && isTodosLoading)) {
     return (
       <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 md:px-8 pt-20 md:pt-24 pb-24">
         {/* Main Card Skeleton */}
         <div className="bg-white dark:bg-black rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 p-5 sm:p-8 overflow-hidden relative">
-
           {/* Header Skeleton */}
           <div className="flex flex-col md:flex-row justify-between gap-4 sm:gap-6 mb-6 sm:mb-10 animate-pulse">
             <div className="flex items-center gap-5">
@@ -51,8 +51,11 @@ export default function TodoApp() {
           {/* Filters & Stats Skeleton */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-gray-100 dark:border-gray-800 animate-pulse">
             <div className="w-full sm:w-auto grid grid-cols-3 sm:flex gap-1 p-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-xl">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-8 sm:h-9 w-full sm:w-20 bg-gray-200 dark:bg-gray-700/50 rounded-lg" />
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-8 sm:h-9 w-full sm:w-20 bg-gray-200 dark:bg-gray-700/50 rounded-lg"
+                />
               ))}
             </div>
             <div className="hidden sm:flex gap-4">
@@ -84,14 +87,13 @@ export default function TodoApp() {
               </div>
             ))}
           </div>
-
         </div>
       </div>
     );
   }
 
   // Not Logged In State (Prioritize this to handle logout immediately)
-  if (!userData?.user) {
+  if (!session?.user) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -172,7 +174,7 @@ export default function TodoApp() {
     return true;
   });
 
-  const initial = userData.user.fullname.charAt(0).toUpperCase();
+  const initial = session.user.name.charAt(0).toUpperCase();
 
   return (
     <motion.div
@@ -190,7 +192,7 @@ export default function TodoApp() {
             </div>
             <div className="space-y-0 sm:space-y-0.5">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-gray-900 dark:text-white">
-                Hello, {userData.user.fullname.split(" ")[0]}
+                Hello, {session.user.name.split(" ")[0]}
                 <span className="text-indigo-500">.</span>
               </h2>
 
@@ -311,15 +313,15 @@ export default function TodoApp() {
                   {filter === "completed"
                     ? "No completed tasks yet"
                     : filter === "active"
-                      ? "No active tasks"
-                      : "No tasks found"}
+                    ? "No active tasks"
+                    : "No tasks found"}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
                   {filter === "completed"
                     ? "Finish some tasks to see them here!"
                     : filter === "active"
-                      ? "Great job! You've completed all your active tasks."
-                      : "It looks like your list is empty. Add a new task above to get started."}
+                    ? "Great job! You've completed all your active tasks."
+                    : "It looks like your list is empty. Add a new task above to get started."}
                 </p>
               </motion.div>
             ) : (
